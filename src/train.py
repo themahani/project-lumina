@@ -8,7 +8,7 @@ from sklearn.metrics import f1_score, roc_auc_score
 from sklearn.model_selection import train_test_split
 
 # Import our model classes dynamically
-from models import GraphSAGE
+from models import *
 
 
 # Helper functions for training and testing (same as before)
@@ -114,11 +114,12 @@ def main():
             if val_f1 > best_val_f1:
                 best_val_f1 = val_f1
                 mlflow.set_tag("best_epoch", epoch)
-                mlflow.pytorch.log_model(
-                    pytorch_model=model,
-                    artifact_path="model",
-                    registered_model_name=config["model_registry_name"],
-                )
+
+        mlflow.pytorch.log_model(
+            pytorch_model=model,
+            artifact_path="model",
+            registered_model_name=config["model_registry_name"],
+        )
 
         print("Training finished.")
         print(f"Model logged and registered as '{config['model_registry_name']}'")

@@ -25,3 +25,7 @@ class GraphSAGE(torch.nn.Module):
 #         self.conv1 = GCNConv(in_channels, hidden_channels)
 #         self.conv2 = GCNConv(hidden_channels, out_channels)
 #     ...
+
+__all__ = [
+    "GraphSAGE",
+]

@@ -18,3 +18,5 @@ mlartifacts/
 .idea/
 .vscode/
 *.DS_Store
+
+*.egg-info/
