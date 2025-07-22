@@ -6,8 +6,8 @@ __pycache__/
 *.pyc
 
 # Data files 
-data/
-# An exception to keep the empty 'data' folder in the repo
+data/*
+keep the empty 'data' folder in the repo
 !data/.gitkeep
 
 # MLflow tracking artifacts
