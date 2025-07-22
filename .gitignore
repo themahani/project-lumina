@@ -1,0 +1,20 @@
+# Python Virtual Environment
+venv/
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Data files 
+data/
+# An exception to keep the empty 'data' folder in the repo
+!data/.gitkeep
+
+# MLflow tracking artifacts
+mlruns/
+mlartifacts/
+
+# IDE and OS specific
+.idea/
+.vscode/
+*.DS_Store
