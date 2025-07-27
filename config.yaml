@@ -7,7 +7,7 @@ data:
   processed_path: "data/processed/graph_data.pt"
 
 model:
-  name: "GraphSAGE"
+  name: "GCN"
   params:
     hidden_channels: 128
     out_channels: 2 # Licit vs Illicit
