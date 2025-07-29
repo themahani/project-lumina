@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+mlflow
+pandas
+scikit-learn
+pyyaml
+kaggle
+requests
