@@ -44,6 +44,55 @@ def test(data, model):
     return val_f1, test_f1, val_auc, test_auc
 
 
+def train_in_mlflow(mlflow_run, model_config: dict, training_config: dict, data):
+    print(f"Starting run {mlflow_run.info.run_id}...")
+    mlflow.log_params(model_config["params"])
+    mlflow.log_params(training_config)
+    mlflow.log_param("model_name", model_config["name"])
+    # mlflow.log_dict(config, "config.yaml")
+
+    # Dynamically Select and Initialize Model
+    model_class = globals()[model_config["name"]]
+    model = model_class(
+        in_channels=data.num_node_features,
+        **model_config["params"],  # Unpack params like hidden_channels
+    )
+
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
+    model = model.to(device)
+    data = data.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=training_config["lr"])
+    criterion = torch.nn.CrossEntropyLoss()
+
+    # Training Loop
+    print("Starting training...")
+    best_val_f1 = 0
+    for epoch in range(1, training_config["epochs"] + 1):
+        loss = train(data, model, optimizer, criterion)
+        val_f1, test_f1, val_auc, test_auc = test(data, model)
+
+        mlflow.log_metric("train_loss", loss, step=epoch)
+        mlflow.log_metric("val_f1", val_f1, step=epoch)
+        mlflow.log_metric("test_f1", test_f1, step=epoch)
+        mlflow.log_metric("val_auc", val_auc, step=epoch)
+        mlflow.log_metric("test_auc", test_auc, step=epoch)
+
+        # Save the best model based on validation F1-score
+        if val_f1 > best_val_f1:
+            best_val_f1 = val_f1
+            mlflow.set_tag("best_epoch", epoch)
+
+    mlflow.pytorch.log_model(
+        pytorch_model=model,
+        name="model",
+        # registered_model_name=config["model_registry_name"],
+    )
+
+    print("Training finished.")
+    print(f"Model logged and registered as `{model_config['name']}`")
+
+
 def main():
     # Load Configuration
     with open("config.yaml", "r") as f:
@@ -77,52 +126,9 @@ def main():
     # Setup MLflow Experiment
     mlflow.set_experiment(config["mlflow_experiment_name"])
 
-    with mlflow.start_run() as run:
-        print(f"Starting run {run.info.run_id}...")
-        mlflow.log_params(config["model"]["params"])
-        mlflow.log_params(config["training"])
-        mlflow.log_param("model_name", config["model"]["name"])
-        mlflow.log_dict(config, "config.yaml")
-
-        # Dynamically Select and Initialize Model
-        model_class = globals()[config["model"]["name"]]
-        model = model_class(
-            in_channels=data.num_node_features,
-            **config["model"]["params"],  # Unpack params like hidden_channels
-        )
-
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model = model.to(device)
-        data = data.to(device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=config["training"]["lr"])
-        criterion = torch.nn.CrossEntropyLoss()
-
-        # Training Loop
-        print("Starting training...")
-        best_val_f1 = 0
-        for epoch in range(1, config["training"]["epochs"] + 1):
-            loss = train(data, model, optimizer, criterion)
-            val_f1, test_f1, val_auc, test_auc = test(data, model)
-
-            mlflow.log_metric("train_loss", loss, step=epoch)
-            mlflow.log_metric("val_f1", val_f1, step=epoch)
-            mlflow.log_metric("test_f1", test_f1, step=epoch)
-            mlflow.log_metric("val_auc", val_auc, step=epoch)
-            mlflow.log_metric("test_auc", test_auc, step=epoch)
-
-            # Save the best model based on validation F1-score
-            if val_f1 > best_val_f1:
-                best_val_f1 = val_f1
-                mlflow.set_tag("best_epoch", epoch)
-
-        mlflow.pytorch.log_model(
-            pytorch_model=model,
-            artifact_path="model",
-            registered_model_name=config["model_registry_name"],
-        )
-
-        print("Training finished.")
-        print(f"Model logged and registered as '{config['model_registry_name']}'")
+    for model_config in config["models"]:
+        with mlflow.start_run() as run:
+            train_in_mlflow(run, model_config, config["training"], data)
 
 
 if __name__ == "__main__":
